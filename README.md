@@ -227,7 +227,7 @@ search: sin sinc sind sinh sign asin in min sinpi using isinf
 julia>
 ```
 
-## Switching another LLM.
+## Switching to another LLM.
 
 On machines without a GPU accelerator, one may want to switch to another lightweight model, such as ‘gemma2:2b’. However, the translation accuracy will be reduced.
 
