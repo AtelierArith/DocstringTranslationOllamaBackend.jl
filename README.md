@@ -168,7 +168,7 @@ search: sin sinc sind sinh sign asin in min sinpi using isinf
 julia>
 ```
 
-### English(英語)
+### Back to English(英語)
 
 You can revert the default `@doc` functionality anytime. Just call `@revertlang!` macro.
 
