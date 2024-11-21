@@ -1,6 +1,8 @@
 module DocstringTranslationOllamaBackend
 
-using Base.Docs: DocStr
+using Base.Docs: DocStr, Binding
+using REPL: find_readme
+import REPL
 using Markdown
 
 using HTTP
@@ -123,6 +125,36 @@ macro switchlang!(lang)
         end
         translate_with_ollama(d.object, string($(lang)))
     end
+
+    @eval function REPL.summarize(io::IO, m::Module, binding::Binding; nlines::Int = 200)
+        readme_path = find_readme(m)
+        public = Base.ispublic(binding.mod, binding.var) ? "public" : "internal"
+        if isnothing(readme_path)
+            println(io, "No docstring or readme file found for $public module `$m`.\n")
+        else
+            println(io, "No docstring found for $public module `$m`.")
+        end
+        exports = filter!(!=(nameof(m)), names(m))
+        if isempty(exports)
+            println(io, "Module does not have any public names.")
+        else
+            println(io, "# Public names")
+            print(io, "  `")
+            join(io, exports, "`, `")
+            println(io, "`\n")
+        end
+        if !isnothing(readme_path)
+            readme_lines = readlines(readme_path)
+            isempty(readme_lines) && return  # don't say we are going to print empty file
+            println(io, "# Displaying contents of readme found at `$(readme_path)`")
+            translated_md = translate_with_ollama(join(first(readme_lines, nlines), '\n'), string($(lang)))
+            readme_lines = split(string(translated_md), '\n')
+            for line in first(readme_lines, nlines)
+                println(io, line)
+            end
+            length(readme_lines) > nlines && println(io, "\n[output truncated to first $nlines lines]")
+        end
+    end
 end
 
 """
@@ -141,6 +173,34 @@ macro revertlang!()
             d.object = md
         end
         d.object
+    end
+
+    @eval function REPL.summarize(io::IO, m::Module, binding::Binding; nlines::Int = 200)
+        readme_path = find_readme(m)
+        public = Base.ispublic(binding.mod, binding.var) ? "public" : "internal"
+        if isnothing(readme_path)
+            println(io, "No docstring or readme file found for $public module `$m`.\n")
+        else
+            println(io, "No docstring found for $public module `$m`.")
+        end
+        exports = filter!(!=(nameof(m)), names(m))
+        if isempty(exports)
+            println(io, "Module does not have any public names.")
+        else
+            println(io, "# Public names")
+            print(io, "  `")
+            join(io, exports, "`, `")
+            println(io, "`\n")
+        end
+        if !isnothing(readme_path)
+            readme_lines = readlines(readme_path)
+            isempty(readme_lines) && return  # don't say we are going to print empty file
+            println(io, "# Displaying contents of readme found at `$(readme_path)`")
+            for line in first(readme_lines, nlines)
+                println(io, line)
+            end
+            length(readme_lines) > nlines && println(io, "\n[output truncated to first $nlines lines]")
+        end
     end
 end
 
@@ -161,7 +221,7 @@ function default_lang()
 end
 
 function default_promptfn(
-    m::Union{Markdown.MD,AbstractString},
+    m::Union{Markdown.MD, AbstractString},
     language::String = default_lang(),
 )
     prompt = """
@@ -174,7 +234,7 @@ $(m)
 end
 
 function translate_with_ollama(
-    doc::Markdown.MD,
+    doc::Union{Markdown.MD, AbstractString},
     language::String = default_lang(),
     model::String = default_model(),
     promptfn::Function = default_promptfn,
