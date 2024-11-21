@@ -15,7 +15,7 @@ const DEFAULT_MODEL = Ref{String}("gemma2:9b")
 const DEFAULT_LANG = Ref{String}("English")
 
 export @switchlang!, @revertlang!
-export list_model
+export listmodel, switchmodel!
 
 function delete_model!(model)
     try
@@ -36,6 +36,8 @@ function delete_model!(model)
 end
 
 function pull_model(model, out::IO = stdout)
+    @info "Pulling" model
+
     buf = PipeBuffer()
     t = @async HTTP.post(
         joinpath(OLLAMA_BASE_URL, "api", "pull"),
@@ -85,7 +87,7 @@ function pull_model(model, out::IO = stdout)
     @debug "Done"
 end
 
-function list_model(; verbose = false)
+function listmodel(; verbose = false)
     res = HTTP.get(joinpath(OLLAMA_BASE_URL, "api", "tags"))
     json_body = JSON3.read(res.body)
     @assert haskey(json_body, :models)
@@ -100,7 +102,7 @@ function list_model(; verbose = false)
     end
 end
 
-function switchlang!(lang::Union{String, Symbol})
+function switchlang!(lang::Union{String,Symbol})
     DEFAULT_LANG[] = String(lang)
 end
 
@@ -112,7 +114,7 @@ end
 """
     @switchlang!(lang)
 
-Modify Docs.parsedoc(d::DocStr) to insert translation engine.
+Modify the behavior of the `Docs.parsedoc(d::DocStr)` to insert translation engine.
 """
 macro switchlang!(lang)
     switchlang!(lang)
@@ -160,8 +162,8 @@ end
 """
     @revertlang!
 
-re-evaluate original implementation for 
-Docs.parsedoc(d::DocStr)
+re-evaluate the original implementation for 
+`Docs.parsedoc(d::DocStr)`
 """
 macro revertlang!()
     switchlang!("English")
@@ -208,8 +210,12 @@ function revertlang!()
     DEFAULT_LANG[] = "English"
 end
 
-function switchmodel!(model::Union{String, Symbol})
-    DEFAULT_model[] = string(model)
+function switchmodel!(model::Union{String,Symbol})
+    @info "Switing model to $(model)"
+    if model ∉ listmodel()[!, :model]
+        pull_model(model)
+    end
+    DEFAULT_MODEL[] = string(model)
 end
 
 function default_model()
@@ -239,7 +245,6 @@ function translate_with_ollama(
     model::String = default_model(),
     promptfn::Function = default_promptfn,
 )
-    buf = PipeBuffer()
     prompt = promptfn(doc)
     chat_response = HTTP.post(
         joinpath("http://localhost:11434", "api", "chat"),
@@ -259,8 +264,6 @@ function __init__()
     # launch ollama
     @info "Launching ollama with \"ollama ls\" command"
     read(`ollama ls`)
-    @debug "Pulling model" DEFAULT_MODEL[]
-    pull_model(DEFAULT_MODEL[])
     @info "Done"
 end
 

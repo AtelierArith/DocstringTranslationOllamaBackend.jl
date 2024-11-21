@@ -55,7 +55,7 @@ julia> using DocstringTranslationOllamaBackend
 
 Call `@switchlang!` macro with your preferred language.
 
-## Example: Japanese(日本語)
+### Example: Japanese(日本語)
 
 ```julia
 julia> @switchlang! :Japanese
@@ -112,7 +112,7 @@ search: sin sinc sind sinh sign asin in min sinpi using isinf
 julia>
 ```
 
-## Example: German(ドイツ語)
+### Example: German(ドイツ語)
 
 ```julia
 help?> sin
@@ -168,7 +168,7 @@ search: sin sinc sind sinh sign asin in min sinpi using isinf
 julia>
 ```
 
-## English(英語)
+### Back to English(英語)
 
 You can revert the default `@doc` functionality anytime. Just call `@revertlang!` macro.
 
@@ -225,4 +225,14 @@ search: sin sinc sind sinh sign asin in min sinpi using isinf
    0.454649  0.454649
 
 julia>
+```
+
+## Switching to another LLM.
+
+On machines without a GPU accelerator, one may want to switch to another lightweight model, such as ‘gemma2:2b’. However, the translation accuracy will be reduced.
+
+```julia
+julia> using Pkg; Pkg.activate(".")
+julia> using DocstringTranslationOllamaBackend
+julia> switchmodel!("gemma2:2b")
 ```
