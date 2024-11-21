@@ -149,12 +149,11 @@ macro switchlang!(lang)
             readme_lines = readlines(readme_path)
             isempty(readme_lines) && return  # don't say we are going to print empty file
             println(io, "# Displaying contents of readme found at `$(readme_path)`")
-            translated_md = translate_with_ollama(join(first(readme_lines, nlines), '\n'), string($(lang)))
+            translated_md = translate_with_ollama_streaming(join(first(readme_lines, nlines), '\n'), string($(lang)))
             readme_lines = split(string(translated_md), '\n')
-            for line in first(readme_lines, nlines)
+            for line in readme_lines
                 println(io, line)
             end
-            length(readme_lines) > nlines && println(io, "\n[output truncated to first $nlines lines]")
         end
     end
 end
@@ -231,7 +230,7 @@ function default_promptfn(
     language::String = default_lang(),
 )
     prompt = """
-You are an expert in the Julia programming language. You are a translation expert. Please provide a faithful translation of the following Markdown in $(language). The translation should faithfully preserve the formatting of the original Markdown. Do not add or remove unnecessary text. Only return a faithful translation:
+You are an expert in the Julia programming language. You are a translation expert. Please provide a faithful translation of the following Markdown in $(language) line by line. The translation should faithfully preserve the formatting of the original Markdown. Do not add or remove unnecessary text. Only return a faithful translation. Never stop until the translation is complete.:
 
 $(m)
 
@@ -247,7 +246,7 @@ function translate_with_ollama(
 )
     prompt = promptfn(doc)
     chat_response = HTTP.post(
-        joinpath("http://localhost:11434", "api", "chat"),
+        joinpath(OLLAMA_BASE_URL, "api", "chat"),
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
         Dict(
             "model" => model,
@@ -258,6 +257,70 @@ function translate_with_ollama(
     )
     chat_json_body = JSON3.read(chat_response.body)
     Markdown.parse(chat_json_body[:message][:content])
+end
+
+function translate_with_ollama_streaming(
+    doc::Union{Markdown.MD, AbstractString},
+    language::String = default_lang(),
+    model::String = default_model(),
+    promptfn::Function = default_promptfn,
+)
+    @info "Translating..."
+    buf = PipeBuffer()
+    prompt = promptfn(doc)
+    t = @async HTTP.post(
+        joinpath(OLLAMA_BASE_URL, "api", "chat"),
+        Dict("Content-Type" => "application/json", "Accept" => "application/json"),
+        Dict(
+            "model" => model,
+            "messages" => [Dict("role" => "user", "content" => prompt)],
+            "tools" => [],
+            "stream" => true,
+        ) |> JSON3.write,
+        response_stream=buf,
+    )
+    
+    errormonitor(t)
+
+    function sse_receiver(c::Channel)
+        chunk = ""
+        while true
+            if eof(buf)
+                sleep(0.125)
+            else
+                chunk = readline(buf,keep=true)
+                if true
+                    json_part = JSON3.read(chunk)
+                    put!(c,json_part)
+                    json_part.done && break
+                    chunk = ""
+                end
+            end
+        end
+    end
+
+    chunks = Channel(sse_receiver)
+    msg_json = JSON3.Object()
+    parts = String[]
+    for json in chunks
+        if !json.done
+            text = hasproperty(json,:response) ? json.response : json.message.content
+            write(stdout, text)
+            push!(parts,text)
+        else
+            write(stdout,"\n")
+            msg_dict = copy(json)
+            if hasproperty(json,:response)
+                msg_dict[:response] = join(parts)
+            else
+                msg_dict[:message][:content] = join(parts)
+            end
+            msg_json = msg_dict |> JSON3.write |> JSON3.read
+        end
+    end
+
+    wait(t)
+    return Markdown.parse(msg_json[:message][:content])
 end
 
 function __init__()
