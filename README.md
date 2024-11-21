@@ -241,3 +241,11 @@ julia> switchmodel!("gemma2:2b")
 
 - Ollama's basic streaming response implementation in Julia is based on this [tokugh/index(auto).md](https://gist.github.com/tokugh/497afc0f363727bd0b34456807fb8a32).
 - Ollama's HTTP request implementation is based on [ollama/ollama-python](https://github.com/ollama/ollama-python).
+
+## Appendix
+
+Normally `@doc mod::Module` reads the `README.md` of a given module `mod`. If the README.md contains many sentences, we have to wait a long time, even on GPU-enabled machines. Here, we use a `stream=true` option to make Julia show us real-time processing. As an example, try the following command:
+
+```julia
+julia> using LatticeQCD; using DocstringTranslationOllamaBackend; @switchlang! :Japanese; @doc LatticeQCD; @revertlang!; @doc LatticeQCD
+```
