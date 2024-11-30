@@ -230,10 +230,21 @@ function default_promptfn(
     language::String = default_lang(),
 )
     prompt = """
-You are an expert in the Julia programming language. You are a translation expert. Please provide a faithful translation of the following Markdown in $(language) line by line. The translation should faithfully preserve the formatting of the original Markdown. Do not add or remove unnecessary text. Only return a faithful translation. Never stop until the translation is complete.:
+You are an expert in the Julia programming language. 
+You are a translation expert. 
+Please provide a faithful translation of the following Markdown in $(language) line by line.
+The translation should faithfully preserve the formatting of the original Markdown. 
+Do not translate quoted word.
+Do not add or remove unnecessary text. 
+Only return a faithful translation.
+Never stop until the translation is complete.:
 
+\"\"\"
 $(m)
+\"\"\"
 
+Please start.
+Only return a faithful translation.
 """
     return prompt
 end
