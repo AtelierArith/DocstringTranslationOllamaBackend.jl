@@ -351,8 +351,29 @@ end
 
 function __init__()
     # launch ollama
-    @info "Launching ollama with \"ollama ls\" command"
-    read(`ollama ls`)
+    @info "Launch ollama with \"ollama serve\" command"
+
+    outbuf = IOBuffer()
+    errbuf = IOBuffer()
+    launchcmd = `ollama serve`
+    try
+        _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf))
+    catch e
+        if e isa ProcessFailedException
+            if occursin("address already in use", String(take!(errbuf)))
+                @info "Ollama is running"
+            else
+                error("$(launchcmd) failed")
+            end
+        else
+            rethrow(e)
+        end
+    end
+    model = default_model() 
+    if model ∉ listmodel().model
+        pull_model(model)
+    end
+
     @info "Done"
 end
 
