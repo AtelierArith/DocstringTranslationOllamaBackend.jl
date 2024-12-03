@@ -234,7 +234,10 @@ You are an expert in the Julia programming language.
 You are a translation expert. 
 Please provide a faithful translation of the following Markdown in $(language) line by line.
 The translation should faithfully preserve the formatting of the original Markdown. 
-Do not translate quoted word.
+The translation should retain the formatting of the original Markdown. This markdown contains KaTeX to render math equations.
+Do not change special characters such as the dollar sign "\$".
+Do not translate quoted source code by codefence. Especially "julia" and "jldoctest" These codefences are special words.
+Do not translate quoted words.
 Do not add or remove unnecessary text. 
 Only return a faithful translation.
 Never stop until the translation is complete.:
@@ -244,7 +247,7 @@ $(m)
 \"\"\"
 
 Please start.
-Only return a faithful translation.
+Only return a faithful translation in $(language).
 """
     return prompt
 end
@@ -267,7 +270,19 @@ function translate_with_ollama(
         ) |> JSON3.write,
     )
     chat_json_body = JSON3.read(chat_response.body)
-    Markdown.parse(chat_json_body[:message][:content])
+
+    content = chat_json_body[:message][:content]
+
+    # The `content` may contains triple double-quotations. We will remove it manually.
+    doclines = split(content, "\n")
+    if startswith(first(doclines), "\"\"\"")
+        popfirst!(doclines)
+    end
+    if startswith(last(doclines), "\"\"\"")
+        pop!(doclines)
+    end
+    docstr = join(doclines, "\n")
+    Markdown.parse(docstr)
 end
 
 function translate_with_ollama_streaming(
