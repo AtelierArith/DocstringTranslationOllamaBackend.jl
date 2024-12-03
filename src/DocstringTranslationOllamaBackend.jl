@@ -240,7 +240,7 @@ Do not translate quoted source code by codefence. Especially "julia" and "jldoct
 Do not translate quoted words.
 Do not add or remove unnecessary text. 
 Only return a faithful translation.
-Never stop until the translation is complete.:
+Never stop until the translation is complete.
 
 \"\"\"
 $(m)
@@ -258,7 +258,7 @@ function translate_with_ollama(
     model::String = default_model(),
     promptfn::Function = default_promptfn,
 )
-    prompt = promptfn(doc)
+    prompt = promptfn(doc, language)
     chat_response = HTTP.post(
         joinpath(OLLAMA_BASE_URL, "api", "chat"),
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
@@ -293,7 +293,7 @@ function translate_with_ollama_streaming(
 )
     @info "Translating..."
     buf = PipeBuffer()
-    prompt = promptfn(doc)
+    prompt = promptfn(doc, language)
     t = @async HTTP.post(
         joinpath(OLLAMA_BASE_URL, "api", "chat"),
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
