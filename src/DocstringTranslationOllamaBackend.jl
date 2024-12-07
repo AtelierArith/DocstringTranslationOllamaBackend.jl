@@ -350,6 +350,9 @@ function translate_with_ollama_streaming(
 end
 
 function __init__()
+    @info "Launch ollama with \"ollama ls\" command"
+    read(`ollama ls`)
+    #=
     # launch ollama
     @info "Launch ollama with \"ollama serve\" command"
 
@@ -357,7 +360,7 @@ function __init__()
     errbuf = IOBuffer()
     launchcmd = `ollama serve`
     try
-        _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf))
+        _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf), wait=true)
     catch e
         if e isa ProcessFailedException
             if occursin("address already in use", String(take!(errbuf)))
@@ -375,6 +378,7 @@ function __init__()
     end
 
     @info "Done"
+    =#
 end
 
 end # module DocstringTranslationOllamaBackend
