@@ -350,35 +350,35 @@ function translate_with_ollama_streaming(
 end
 
 function __init__()
-    @info "Launch ollama with \"ollama ls\" command"
-    read(`ollama ls`)
-    #=
+    #@info "Launch ollama with \"ollama ls\" command"
+    #read(`ollama ls`)
     # launch ollama
     @info "Launch ollama with \"ollama serve\" command"
 
     outbuf = IOBuffer()
     errbuf = IOBuffer()
     launchcmd = `ollama serve`
-    try
-        _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf), wait=true)
-    catch e
-        if e isa ProcessFailedException
-            if occursin("address already in use", String(take!(errbuf)))
-                @info "Ollama is running"
+    @async begin
+        try
+            _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf), wait=true)
+        catch e
+            if e isa ProcessFailedException
+                if occursin("address already in use", String(take!(errbuf)))
+                    @info "Ollama is running"
+                else
+                    error("$(launchcmd) failed")
+                end
             else
-                error("$(launchcmd) failed")
+                rethrow(e)
             end
-        else
-            rethrow(e)
         end
-    end
-    model = default_model() 
-    if model ∉ listmodel().model
-        pull_model(model)
+        model = default_model() 
+        if model ∉ listmodel().model
+            pull_model(model)
+        end
     end
 
     @info "Done"
-    =#
 end
 
 end # module DocstringTranslationOllamaBackend
