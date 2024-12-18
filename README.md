@@ -229,12 +229,20 @@ julia>
 
 ## Switching to another LLM.
 
-On machines without a GPU accelerator, one may want to switch to another lightweight model, such as ‘gemma2:2b’. However, the translation accuracy will be reduced.
+On machines without a GPU accelerator, one may want to switch to another lightweight model, such as `gemma2:2b`. However, the translation accuracy will be reduced.
 
 ```julia
 julia> using Pkg; Pkg.activate(".")
 julia> using DocstringTranslationOllamaBackend
 julia> switchmodel!("gemma2:2b")
+```
+
+To improve translation accuracy, we can use `gemma2:27b`.
+
+```julia
+julia> using Pkg; Pkg.activate(".")
+julia> using DocstringTranslationOllamaBackend
+julia> switchmodel!("gemma2:27b")
 ```
 
 ## Acknowledgement
