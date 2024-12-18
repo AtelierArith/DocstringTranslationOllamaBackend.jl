@@ -11,7 +11,7 @@ using DataFrames
 using ProgressMeter
 
 const OLLAMA_BASE_URL = get(ENV, "OLLAMA_BASE_URL", "http://localhost:11434")
-const DEFAULT_MODEL = Ref{String}("gemma2:9b")
+const DEFAULT_MODEL = Ref{String}("gemma2:27b")
 const DEFAULT_LANG = Ref{String}("English")
 
 export @switchlang!, @revertlang!
@@ -125,7 +125,7 @@ macro switchlang!(lang)
             md.meta[:path] = d.data[:path]
             d.object = md
         end
-        translate_with_ollama(d.object, string($(lang)))
+        translate_with_ollama_streaming(d.object, string($(lang)))
     end
 
     @eval function REPL.summarize(io::IO, m::Module, binding::Binding; nlines::Int = 200)
