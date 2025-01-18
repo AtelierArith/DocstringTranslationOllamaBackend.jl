@@ -233,11 +233,11 @@ function default_promptfn(
 Please provide a faithful translation of the following JuliaLang Markdown in $(language) line by line.
 The translation should retain the formatting of the original Markdown.
 Never change special characters such as "\$", "@", ",", ".", "[" or "]".
-Never change quoted words by "`"
+Never change contents quoted by "`"
 Never change source code quoted by codefence, especially "math", "julia", "julia-repl" and "jldoctest" These codefences are special words.
 Never add or remove unnecessary text. 
 Never stop until the translation is complete.
-Only return a faithful translation in $(language).
+Just return the result. Keep in mind only return a faithful translation in $(language).
 """
     return prompt
 end
