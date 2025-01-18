@@ -230,23 +230,13 @@ function default_promptfn(
     language::String = default_lang(),
 )
     prompt = """
-You are an expert in the Julia programming language. 
-You are a translation expert. 
-Please provide a faithful translation of the following Markdown in $(language) line by line.
-The translation should faithfully preserve the formatting of the original Markdown. 
-The translation should retain the formatting of the original Markdown. This markdown contains KaTeX to render math equations.
-Do not change special characters such as the dollar sign "\$".
-Do not translate quoted source code by codefence. Especially "julia" and "jldoctest" These codefences are special words.
-Do not translate quoted words.
-Do not add or remove unnecessary text. 
-Only return a faithful translation.
+Please provide a faithful translation of the following JuliaLang Markdown in $(language) line by line.
+The translation should retain the formatting of the original Markdown.
+Never change special characters such as "\$", "@", ",", ".", "[" or "]".
+Never change quoted words by "`"
+Never change source code quoted by codefence, especially "math", "julia", "julia-repl" and "jldoctest" These codefences are special words.
+Never add or remove unnecessary text. 
 Never stop until the translation is complete.
-
-\"\"\"
-$(m)
-\"\"\"
-
-Please start.
 Only return a faithful translation in $(language).
 """
     return prompt
@@ -264,24 +254,19 @@ function translate_with_ollama(
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
         Dict(
             "model" => model,
-            "messages" => [Dict("role" => "user", "content" => prompt)],
+            "messages" => [
+                Dict("role" => "system", "content" => prompt)
+                Dict("role" => "user", "content" => """$(doc)""")
+            ],
             "tools" => [],
             "stream" => false,
         ) |> JSON3.write,
     )
     chat_json_body = JSON3.read(chat_response.body)
-
     content = chat_json_body[:message][:content]
-
-    # The `content` may contains triple double-quotations. We will remove it manually.
-    doclines = split(content, "\n")
-    if startswith(first(doclines), "\"\"\"")
-        popfirst!(doclines)
-    end
-    if startswith(last(doclines), "\"\"\"")
-        pop!(doclines)
-    end
-    docstr = join(doclines, "\n")
+    # Post processing
+    # The content may contains $$ ... $$
+    docstr = replace(content,  r"\$\$\n([\s\S]+?)\n\$\$" => s"```math\n\1\n```")
     Markdown.parse(docstr)
 end
 
@@ -291,7 +276,6 @@ function translate_with_ollama_streaming(
     model::String = default_model(),
     promptfn::Function = default_promptfn,
 )
-    @info "Translating..."
     buf = PipeBuffer()
     prompt = promptfn(doc, language)
     t = @async HTTP.post(
@@ -299,7 +283,10 @@ function translate_with_ollama_streaming(
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
         Dict(
             "model" => model,
-            "messages" => [Dict("role" => "user", "content" => prompt)],
+            "messages" => [
+                Dict("role" => "system", "content" => prompt)
+                Dict("role" => "user", "content" => "$(doc)")
+            ],
             "tools" => [],
             "stream" => true,
         ) |> JSON3.write,
@@ -346,7 +333,11 @@ function translate_with_ollama_streaming(
     end
 
     wait(t)
-    return Markdown.parse(msg_json[:message][:content])
+    content = msg_json[:message][:content]
+    # Post processing
+    # The content may contains $$ ... $$
+    docstr = replace(content,  r"\$\$\n([\s\S]+?)\n\$\$" => s"```math\n\1\n```")
+    return Markdown.parse(docstr)
 end
 
 function __init__()
