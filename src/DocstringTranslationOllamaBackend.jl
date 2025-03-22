@@ -225,10 +225,7 @@ function default_lang()
     return DEFAULT_LANG[]
 end
 
-function default_promptfn(
-    m::Union{Markdown.MD, AbstractString},
-    language::String = default_lang(),
-)
+function default_system_promptfn(language::String = default_lang())
     prompt = """
 Please provide a faithful translation of the following JuliaLang Markdown in $(language) line by line.
 The translation should retain the formatting of the original Markdown.
@@ -246,9 +243,9 @@ function translate_with_ollama(
     doc::Union{Markdown.MD, AbstractString},
     language::String = default_lang(),
     model::String = default_model(),
-    promptfn::Function = default_promptfn,
+    system_promptfn::Function = default_system_promptfn,
 )
-    prompt = promptfn(doc, language)
+    prompt = system_promptfn(language)
     chat_response = HTTP.post(
         joinpath(OLLAMA_BASE_URL, "api", "chat"),
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
@@ -274,10 +271,10 @@ function translate_with_ollama_streaming(
     doc::Union{Markdown.MD, AbstractString},
     language::String = default_lang(),
     model::String = default_model(),
-    promptfn::Function = default_promptfn,
+    system_promptfn::Function = default_system_promptfn,
 )
     buf = PipeBuffer()
-    prompt = promptfn(doc, language)
+    prompt = system_promptfn(language)
     t = @async HTTP.post(
         joinpath(OLLAMA_BASE_URL, "api", "chat"),
         Dict("Content-Type" => "application/json", "Accept" => "application/json"),
