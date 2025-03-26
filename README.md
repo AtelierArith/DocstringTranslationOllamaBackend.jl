@@ -245,6 +245,11 @@ julia> using DocstringTranslationOllamaBackend
 julia> switchmodel!("gemma2:27b")
 ```
 
+### Other potential selections
+
+- [`mistral`](https://ollama.com/library/mistral)
+- [`gemma3:12b`](https://ollama.com/library/gemma3:12b), [`gemma3:27b`](https://ollama.com/library/gemma3:27b)
+
 ## Acknowledgement
 
 - Ollama's basic streaming response implementation in Julia is based on this [tokugh/index(auto).md](https://gist.github.com/tokugh/497afc0f363727bd0b34456807fb8a32).
