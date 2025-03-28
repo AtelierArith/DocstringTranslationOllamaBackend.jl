@@ -106,18 +106,12 @@ function switchlang!(lang::Union{String,Symbol})
     DEFAULT_LANG[] = String(lang)
 end
 
-function switchlang!(node::QuoteNode)
-    lang = node.value
-    switchlang!(lang)
-end
-
 """
     @switchlang!(lang)
 
 Modify the behavior of the `Docs.parsedoc(d::DocStr)` to insert translation engine.
 """
 macro switchlang!(lang)
-    switchlang!(lang)
     @eval function Docs.parsedoc(d::DocStr)
         if d.object === nothing
             md = Docs.formatdoc(d)
@@ -125,7 +119,7 @@ macro switchlang!(lang)
             md.meta[:path] = d.data[:path]
             d.object = md
         end
-        translate_with_ollama_streaming(d.object, string($(lang)))
+        translate_with_ollama_streaming(d.object)
     end
 
     @eval function REPL.summarize(io::IO, m::Module, binding::Binding; nlines::Int = 200)
@@ -149,12 +143,16 @@ macro switchlang!(lang)
             readme_lines = readlines(readme_path)
             isempty(readme_lines) && return  # don't say we are going to print empty file
             println(io, "# Displaying contents of readme found at `$(readme_path)`")
-            translated_md = translate_with_ollama_streaming(join(first(readme_lines, nlines), '\n'), string($(lang)))
+            translated_md = translate_with_ollama_streaming(join(first(readme_lines, nlines), '\n'))
             readme_lines = split(string(translated_md), '\n')
             for line in readme_lines
                 println(io, line)
             end
         end
+    end
+    quote
+        local _lang = $(esc(lang))
+        switchlang!(_lang)
     end
 end
 
