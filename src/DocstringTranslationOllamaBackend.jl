@@ -217,6 +217,15 @@ function default_lang()
     return DEFAULT_LANG[]
 end
 
+function postprocess_content(content::AbstractString)
+    # Replace each match with the text wrapped in a math code block
+    return replace(
+        content, 
+        r":\$(.*?):\$"s => s"```math\1```",
+        r"\$\$(.*?)\$\$"s => s"```math\1```"
+        )
+end
+
 function default_system_promptfn(language::String = default_lang())
     prompt = """
 Please provide a faithful translation of the following JuliaLang Markdown in $(language) line by line.
@@ -254,7 +263,7 @@ function translate_with_ollama(
     content = chat_json_body[:message][:content]
     # Post processing
     # The content may contains $$ ... $$
-    docstr = replace(content,  r"\$\$\n([\s\S]+?)\n\$\$" => s"```math\n\1\n```")
+    docstr = postprocess_content(content)
     Markdown.parse(docstr)
 end
 
@@ -324,7 +333,7 @@ function translate_with_ollama_streaming(
     content = msg_json[:message][:content]
     # Post processing
     # The content may contains $$ ... $$
-    docstr = replace(content,  r"\$\$\n([\s\S]+?)\n\$\$" => s"```math\n\1\n```")
+    docstr = postprocess_content(content)
     return Markdown.parse(docstr)
 end
 
