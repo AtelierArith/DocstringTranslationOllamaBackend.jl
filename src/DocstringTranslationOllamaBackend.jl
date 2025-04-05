@@ -7,7 +7,6 @@ using Markdown
 
 using HTTP
 using JSON3
-using DataFrames
 using ProgressMeter
 
 const OLLAMA_BASE_URL = get(ENV, "OLLAMA_BASE_URL", "http://localhost:11434")
@@ -91,15 +90,10 @@ function listmodel(; verbose = false)
     res = HTTP.get(joinpath(OLLAMA_BASE_URL, "api", "tags"))
     json_body = JSON3.read(res.body)
     @assert haskey(json_body, :models)
-    df = DataFrame(sort(json_body[:models], lt = (x, y) -> x[:size] < y[:size]))
-    if verbose
-        return df
-    else
-        df = DataFrame(
-            :model => df[:, :model],
-            :format_bytes => Base.format_bytes.(df[:, :size]),
-        )
+    name_size = map(sort(json_body[:models], lt = (x, y) -> x[:size] < y[:size])) do obj
+        String(obj[:model]) => String(Base.format_bytes(obj[:size]))
     end
+    Dict(name_size...)
 end
 
 function switchlang!(lang::Union{String,Symbol})
@@ -209,7 +203,7 @@ end
 
 function switchmodel!(model::Union{String,Symbol})
     @info "Switing model to $(model)"
-    if model ∉ listmodel()[!, :model]
+    if model ∉ keys(listmodel())
         pull_model(model)
     end
     DEFAULT_MODEL[] = string(model)
@@ -365,6 +359,7 @@ function __init__()
     end
 
     @info "Done"
+    println()
 end
 
 end # module DocstringTranslationOllamaBackend
