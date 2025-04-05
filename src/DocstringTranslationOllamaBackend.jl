@@ -364,7 +364,7 @@ function __init__()
             end
         end
         model = default_model()
-        if model ∉ listmodel().model
+        if model ∉ keys(listmodel())
             pull_model(model)
         end
     end
