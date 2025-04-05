@@ -5,12 +5,13 @@ using REPL: find_readme
 import REPL
 using Markdown
 
+using OrderedCollections
 using HTTP
 using JSON3
 using ProgressMeter
 
 const OLLAMA_BASE_URL = get(ENV, "OLLAMA_BASE_URL", "http://localhost:11434")
-const DEFAULT_MODEL = Ref{String}("gemma2:9b")
+const DEFAULT_MODEL = Ref{String}("gemma3:4b")
 const DEFAULT_LANG = Ref{String}("English")
 
 export @switchlang!, @revertlang!
@@ -93,7 +94,7 @@ function listmodel()
     name_size = map(sort(json_body[:models], lt = (x, y) -> x[:size] < y[:size])) do obj
         String(obj[:model]) => String(Base.format_bytes(obj[:size]))
     end
-    Dict(name_size...)
+    OrderedDict(name_size...)
 end
 
 function switchlang!(lang::Union{String,Symbol})
@@ -137,7 +138,8 @@ macro switchlang!(lang)
             readme_lines = readlines(readme_path)
             isempty(readme_lines) && return  # don't say we are going to print empty file
             println(io, "# Displaying contents of readme found at `$(readme_path)`")
-            translated_md = translate_with_ollama_streaming(join(first(readme_lines, nlines), '\n'))
+            translated_md =
+                translate_with_ollama_streaming(join(first(readme_lines, nlines), '\n'))
             readme_lines = split(string(translated_md), '\n')
             for line in readme_lines
                 println(io, line)
@@ -192,7 +194,8 @@ macro revertlang!()
             for line in first(readme_lines, nlines)
                 println(io, line)
             end
-            length(readme_lines) > nlines && println(io, "\n[output truncated to first $nlines lines]")
+            length(readme_lines) > nlines &&
+                println(io, "\n[output truncated to first $nlines lines]")
         end
     end
 end
@@ -220,10 +223,10 @@ end
 function postprocess_content(content::AbstractString)
     # Replace each match with the text wrapped in a math code block
     return replace(
-        content, 
+        content,
         r":\$(.*?):\$"s => s"```math\1```",
-        r"\$\$(.*?)\$\$"s => s"```math\1```"
-        )
+        r"\$\$(.*?)\$\$"s => s"```math\1```",
+    )
 end
 
 function default_system_promptfn(language::String = default_lang())
@@ -240,7 +243,7 @@ Just return the result. Keep in mind only return a faithful translation in $(lan
 end
 
 function translate_with_ollama(
-    doc::Union{Markdown.MD, AbstractString},
+    doc::Union{Markdown.MD,AbstractString},
     language::String = default_lang(),
     model::String = default_model(),
     system_promptfn::Function = default_system_promptfn,
@@ -268,7 +271,7 @@ function translate_with_ollama(
 end
 
 function translate_with_ollama_streaming(
-    doc::Union{Markdown.MD, AbstractString},
+    doc::Union{Markdown.MD,AbstractString},
     language::String = default_lang(),
     model::String = default_model(),
     system_promptfn::Function = default_system_promptfn,
@@ -287,9 +290,9 @@ function translate_with_ollama_streaming(
             "tools" => [],
             "stream" => true,
         ) |> JSON3.write,
-        response_stream=buf,
+        response_stream = buf,
     )
-    
+
     errormonitor(t)
 
     function sse_receiver(c::Channel)
@@ -298,10 +301,10 @@ function translate_with_ollama_streaming(
             if eof(buf)
                 sleep(0.125)
             else
-                chunk = readline(buf,keep=true)
+                chunk = readline(buf, keep = true)
                 if true
                     json_part = JSON3.read(chunk)
-                    put!(c,json_part)
+                    put!(c, json_part)
                     json_part.done && break
                     chunk = ""
                 end
@@ -314,13 +317,13 @@ function translate_with_ollama_streaming(
     parts = String[]
     for json in chunks
         if !json.done
-            text = hasproperty(json,:response) ? json.response : json.message.content
+            text = hasproperty(json, :response) ? json.response : json.message.content
             write(stdout, text)
-            push!(parts,text)
+            push!(parts, text)
         else
-            write(stdout,"\n")
+            write(stdout, "\n")
             msg_dict = copy(json)
-            if hasproperty(json,:response)
+            if hasproperty(json, :response)
                 msg_dict[:response] = join(parts)
             else
                 msg_dict[:message][:content] = join(parts)
@@ -348,7 +351,7 @@ function __init__()
     launchcmd = `ollama serve`
     @async begin
         try
-            _ = run(pipeline(launchcmd, stdout=outbuf, stderr=errbuf), wait=true)
+            _ = run(pipeline(launchcmd, stdout = outbuf, stderr = errbuf), wait = true)
         catch e
             if e isa ProcessFailedException
                 if occursin("address already in use", String(take!(errbuf)))
@@ -360,7 +363,7 @@ function __init__()
                 rethrow(e)
             end
         end
-        model = default_model() 
+        model = default_model()
         if model ∉ listmodel().model
             pull_model(model)
         end
