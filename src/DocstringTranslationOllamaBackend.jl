@@ -86,7 +86,7 @@ function pull_model(model, out::IO = stdout)
     @debug "Done"
 end
 
-function listmodel(; verbose = false)
+function listmodel()
     res = HTTP.get(joinpath(OLLAMA_BASE_URL, "api", "tags"))
     json_body = JSON3.read(res.body)
     @assert haskey(json_body, :models)
