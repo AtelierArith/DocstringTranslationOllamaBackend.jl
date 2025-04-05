@@ -11,7 +11,7 @@ using JSON3
 using ProgressMeter
 
 const OLLAMA_BASE_URL = get(ENV, "OLLAMA_BASE_URL", "http://localhost:11434")
-const DEFAULT_MODEL = Ref{String}("gemma3:4b")
+const DEFAULT_MODEL = Ref{String}("gemma2:9b")
 const DEFAULT_LANG = Ref{String}("English")
 
 export @switchlang!, @revertlang!
