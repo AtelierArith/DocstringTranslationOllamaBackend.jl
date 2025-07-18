@@ -1,0 +1,11 @@
+[deps]
+DocstringTranslation = "d404e13b-1f8e-41a5-a26a-0b758a0c6c97"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+
+[sources]
+SpecialFunctions = {path = ".."}
+
+[compat]
+Documenter = "1"
